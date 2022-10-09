@@ -1,0 +1,33 @@
+node{
+    def mavenHome = tool name: "maven3.8.6"
+    stage('CheckOutCode')
+    {
+        git branch: 'development', credentialsId: 'a341c542-6c19-481a-9e2b-73bb8d62012f', url: 'https://github.com/yenumula-ec-project/maven-web-application.git'
+    }
+    stage('Build')
+    {
+        sh "${mavenHome}/bin/mvn clean package"
+    }
+    stage('SonarQube')
+    {
+        sh "${mavenHome}/bin/mvn clean package sonar:sonar"
+    }
+    stage('Nexus')
+    {
+        sh "${mavenHome}/bin/mvn clean deploy"
+    }
+    stage('Tomcat')
+    {
+        sshagent(['fb06e2f0-d5d3-4b91-9cab-57605d413ab1']) 
+    {
+    sh 'scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@54.227.75.211:/opt/apache-tomcat-9.0.67/webapps/'
+    }
+    }
+    stage('Email')
+    {
+        emailext body: '''Build is Over !!
+Regards,
+GSamba,
+8639820328.''', subject: 'Build is Over ... !!', to: 'gundeboinasamba9@gmail.com'
+    }
+}
